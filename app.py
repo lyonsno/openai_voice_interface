@@ -25,6 +25,44 @@ import librosa  # Add this import at the top of the file
 # Add these imports
 from silero_vad import load_silero_vad, get_speech_timestamps
 
+
+
+"""
+A real-time voice interface system that creates a seamless conversation flow between users and AI.
+
+This script implements a complete audio processing pipeline that combines voice activity detection,
+speech recognition, natural language processing, and speech synthesis. It utilizes various OpenAI
+APIs (Whisper, GPT-4, and TTS) to create an interactive voice assistant.
+
+Key Components:
+    - Audio Input Processing: Captures and processes microphone input with real-time level monitoring
+    - Voice Activity Detection (VAD): Uses Silero VAD to identify speech segments
+    - Speech-to-Text: Converts detected speech to text using OpenAI's Whisper
+    - Conversational AI: Processes text through GPT-4 for intelligent responses
+    - Text-to-Speech: Converts AI responses to natural speech using OpenAI's TTS
+    - Monitoring: Includes comprehensive logging and cost estimation
+
+The system processes audio in real-time blocks, detecting speech segments and ignoring silence.
+When speech is detected, it's transcribed and processed through GPT-4, with responses being
+synthesized and played back to the user immediately.
+
+Requirements:
+    - OpenAI API key set in environment variables
+    - Python packages: sounddevice, numpy, torch, openai, pydub, librosa, etc.
+    - Audio input/output capabilities
+
+Usage:
+    Run the script directly to start the voice interface:
+    $ python app.py
+
+    The system will first run an audio test, then begin listening for speech.
+    Use Ctrl+C to gracefully shut down the application.
+
+Note:
+    Token usage is tracked and cost estimates are provided upon shutdown.
+"""
+
+
 # Set your OpenAI API key from environment variables
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
