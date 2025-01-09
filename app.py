@@ -76,6 +76,7 @@ DEVICE = None  # Default input device
 VAD_MODE = "0.3"  # Aggressiveness of VAD: 0-3
 WHISPER_MODEL = "whisper-1"
 COMPLETIONS_MODEL = "chatGPT-4o-latest"
+TOKENIZER_MODEL = "gpt-4o-latest"
 TTS_MODEL = "tts-1"
 TTS_VOICE = "alloy"  # Choose your preferred voice
 TOKEN_COST_INPUT = 5 / 1e6  # $5 per million input tokens
@@ -106,7 +107,7 @@ input_tokens = 0
 output_tokens = 0
 
 # Tokenizer
-tokenizer = encoding_for_model(COMPLETIONS_MODEL)
+tokenizer = encoding_for_model(TOKENIZER_MODEL)
 
 # Add this constant
 VAD_THRESHOLD = 0.02  # Increased from 0.01 to make it less sensitive
@@ -343,31 +344,22 @@ async def main():
                     audio_np = np.concatenate(buffer)
                     logger.debug(f"Processing audio chunk: shape={audio_np.shape}, duration={len(audio_np)/SAMPLE_RATE:.2f}s")
 
-                    # Downsample to 16kHz for VAD model
+                    # After downsampling to 16kHz
                     audio_16k = librosa.resample(audio_np, orig_sr=SAMPLE_RATE, target_sr=16000)
 
                     # Ensure audio is in the correct format for VAD
                     audio_tensor = torch.from_numpy(audio_16k.astype(np.float32))
-                    audio_tensor = audio_tensor.unsqueeze(0)  # Add batch dimension
 
                     logger.debug("Applying VAD model")
-                    # Apply VAD
-                    speech_probs = vad_model(audio_tensor, 16000).squeeze()
-                    logger.debug(f"Speech probabilities: {speech_probs}")
 
-                    max_prob = speech_probs.max().item()
-                    logger.info(f"Max speech probability: {max_prob:.4f}")
-
-                    speech_regions = (speech_probs > VAD_THRESHOLD).long()
-                    logger.debug(f"Speech regions: {speech_regions}")
-
-                    speech_timestamps = get_speech_timestamps(speech_regions, sampling_rate=16000)
+                    # Detect speech regions directly using the get_speech_timestamps function
+                    speech_timestamps = get_speech_timestamps(audio_16k, vad_model, sampling_rate=16000)
                     logger.debug(f"Speech timestamps: {speech_timestamps}")
 
                     current_time = time.time()
                     if speech_timestamps:
                         print("\nSpeech detected!")
-                        logger.info(f"VAD: Speech detected. Max probability: {max_prob:.4f}")
+                        logger.info(f"VAD: Speech detected.")
                         transcript_queue.put(audio_np)  # Use original audio for transcription
                         buffer = []
                         last_speech_time = current_time
@@ -376,7 +368,7 @@ async def main():
                         # No speech detected, log every 5 seconds
                         if current_time - last_log_time >= 5:
                             print(f"\nNo speech detected for {current_time - last_speech_time:.1f} seconds")
-                            logger.info(f"No speech detected for {current_time - last_speech_time:.1f} seconds. Max probability: {max_prob:.4f}")
+                            logger.info(f"No speech detected for {current_time - last_speech_time:.1f} seconds.")
                             last_log_time = current_time
 
                     # Clear buffer if it's too large, keeping the last 1 second
